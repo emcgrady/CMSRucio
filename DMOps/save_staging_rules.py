@@ -26,7 +26,7 @@ class ArgumentParser():
         self.parser.add_argument('--states', help='specify rule state', default='A', type=list, dest='states')
         self.parser.add_argument('--start', help='First date to look for staging rules (YYYY-MM-DD)', required=True, dest='start')
         self.parser.add_argument('--end', help='Last date to look for staging rules (YYYY-MM-DD)', default=datetime.datetime.now(), dest='end')
-        self.parser.add_argument('--dest', help='location to save the parquet file', default='staging_rules.parquet', dest='dest')
+        self.parser.add_argument('--file_name', help='location to save the parquet file', default='staging_rules.parquet', dest='file_name')
         self.parser.add_argument('--rse', help='Filter by RSE expression', default=None, dest='rse')
         self.parser.add_argument('--account', help='Filter by account', default=None, dest='account')
         
@@ -58,7 +58,7 @@ def save_stuck_rules(args):
         temp = temp[['state', 'id', 'account', 'name', 'rse_expression', 'updated_at']]
         df = pd.concat([df, temp], ignore_index=True)
         
-    df.to_parquet(args.dest)
+    df.to_parquet(args.file_name)
     
 if __name__ == '__main__':
     optmgr = ArgumentParser()
