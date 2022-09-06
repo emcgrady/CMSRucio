@@ -3,6 +3,8 @@ from rucio.client.client import Client
 import pandas as pd
 import gfal2
 import argparse
+import subprocess
+import os
 
 class ArgumentParser():
     def __init__(self):
@@ -36,7 +38,7 @@ def is_corrupt(args):
     
     diag = {'diag': [], 'reason':[]}
 
-    for i in range(len(df)):
+    for i in df.index:
         try:
             ctxt.checksum(df['replica'][i],'adler32')
             print('Replica found on ' +  df['RSE'][i]) 
@@ -49,7 +51,7 @@ def is_corrupt(args):
                 print('ERROR! Checksum incorrect!')
                 print('Expected ' + str(checksum) + ' and got ' + str(ctxt.checksum(df['replica'][i],'adler32')))
                 diag['diag'].append('replica corrupt')
-                diag['reason'].append('replica checksum mismatch')
+                diag['reason'].append('replica checksum mismatch at RSE')
         except:
             print('File not found on ' + df['RSE'][i])
             diag['diag'].append('replica missing')
@@ -59,6 +61,18 @@ def is_corrupt(args):
     df['diag'] = diag['diag']
     df['reasoning'] = diag['reason']
     
+    for i in df.loc[df['diag'] == 'none'].index:
+        file = df['replica'][i]
+        os.system('gfal-copy ' + file + ' /tmp/temp.root')
+        test = subprocess.check_output('gfal-sum /tmp/temp.root adler32', shell=True)
+        if str(test).split()[1][:8] == checksum:
+            print('Replica from ' + df['RSE'][i] + ' is not corrupt')
+        else:
+            print('Replica from ' + df['RSE'][i] + ' is corrupt!')
+            df['diag'][i] = 'replica corrupt'
+            df['reason'][i] = 'file checksum mismatch after local copy'
+        os.system('rm /tmp/temp.root')
+
     print(df)
 
 if __name__ == '__main__':
