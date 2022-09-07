@@ -11,10 +11,9 @@ class ArgumentParser():
 
         
 def get_replicas(args):
-    dids=[]
     scope, name = args.filename.split(':')
-    dids.append({'scope':scope,'name':name})
-    df = pd.DataFrame(client.list_replicas(dids, all_states=True))
+    did = [{'scope':scope,'name':name}]
+    df = pd.DataFrame(client.list_replicas(did, all_states=True))
     checksum = df['adler32'][0]
     filesize = df['bytes'][0]
     rse = []
@@ -78,7 +77,19 @@ def is_corrupt(args):
             df['diag'][i] = 'unknown'
             df['reason'][i] = 'disk copy unavailable for copy but replica passed remote checksum and filesize checks'
 
+    print('Tests complete!')
+    print('Results:')
     print(df)
+    
+    for i in df.loc[(df['diag'] != 'ok') & (df['diag'] != 'unknown')].index:
+        print('The replica at ' + df['RSE'][i] + 
+              'is likely corrupt. This script returned "' + df['reason'][i] + '" as the problem.')
+        print('Would you like to delete the file?')
+        print('Type "yes" if you would like to delete.')
+        delete = input('')
+        if delete == 'yes':
+            client.delete_replicas(df['RSE'][i], [args.filename])
+            print(args.filename + ' deleted at ' + df['RSE'][i])
 
 if __name__ == '__main__':
     print('Be assured that the code is running')
